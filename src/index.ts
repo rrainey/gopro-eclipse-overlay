@@ -61,8 +61,9 @@ GPMFExtract(buffer)
 
       if (offset_sec != lastOffset_sec) {
         output.push(
+          `drawbox=y=ih-160:color=black@0.3:width=iw-800:height=100:t=fill:enable='between(t,${offset_sec},${offset_sec + 1})',` +
           `drawtext=fontfile=DejaVuSans-Bold.ttf:expansion=none:text='${label}':` +
-          `enable='between(t,${offset_sec},${offset_sec + 1})':x=50:y=h-th-80:fontsize=64:fontcolor=white:box=1:boxcolor=black@0.5`
+          `enable='between(t,${offset_sec},${offset_sec + 1})':x=50:y=h-th-80:fontsize=64:fontcolor=white`
         );
         console.log(`Sample ${i} used`);
         lastOffset_sec = offset_sec;
