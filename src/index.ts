@@ -30,9 +30,17 @@ GPMFExtract(buffer)
     //const gpsSamples = data['1']?.streams?.GPS5?.samples || [];
     const gpsStream = telemetry['1']?.streams?.GPS5.samples;
     const output: string[] = [];
+    let lastOffset_sec = -1;
+
+    /*
+     * Traverse the GPS samples and create overlay text at one-second intervals.
+     */
+
 
     gpsStream.forEach((sample, i: number) => {
       const timestamp = new Date(sample.date);
+      const offset_ms = sample.cts;
+      const offset_sec = Math.floor(offset_ms / 1000);
       const location = { lat: sample.value[0], lon: sample.value[1] };
       //console.log(`Sample ${i}: ${timestamp.toISOString()} - Lat: ${location.lat}, Lon: ${location.lon}`);
       const eclipseInfo = computeEclipseStatus(timestamp, location);
@@ -40,21 +48,25 @@ GPMFExtract(buffer)
       const totalityPercentage  = (1.0 - eclipseInfo.illumination) * 100;
 
       const s = timestamp.toLocaleTimeString("en-US", {timeZone: "America/Chicago"});
-      const printedTimeHHMM = s.slice(0,findSecondIndexOf(s,":"));
+      const printedTimeHHMM = s.slice(0,findSecondIndexOf(s,":")).replace(":", "\\:");
 
       let totalityString = "";
       if (eclipseInfo.eclipse === OverlapState.HIDDEN || totalityPercentage > 99.0) {
         totalityString = "totality";
       }
       else {
-        totalityString = `${totalityPercentage.toFixed(0)}%`;
+        totalityString = `${totalityPercentage.toFixed(0)}\\%`;
       }
-      const label = `Time: ${printedTimeHHMM}  |  ${totalityString}`;
+      const label = `Time\\: ${printedTimeHHMM}  |  ${totalityString}`;
 
-      output.push(
-        `drawtext=fontfile=./DejaVu_Sans/DejaVuSans-Bold.ttf:expansion=none:text='${label}':` +
-        `enable='between(t,${i},${i + 1})':x=50:y=h-th-80:fontsize=64:fontcolor=white:box=1:boxcolor=black@0.5`
-      );
+      if (offset_sec != lastOffset_sec) {
+        output.push(
+          `drawtext=fontfile=DejaVuSans-Bold.ttf:expansion=none:text='${label}':` +
+          `enable='between(t,${offset_sec},${offset_sec + 1})':x=50:y=h-th-80:fontsize=64:fontcolor=white:box=1:boxcolor=black@0.5`
+        );
+        console.log(`Sample ${i} used`);
+        lastOffset_sec = offset_sec;
+      }
     });
 
     fs.writeFileSync(overlayFile, output.join(',\n'), 'utf-8');
@@ -67,7 +79,7 @@ GPMFExtract(buffer)
       //const command = `dir`;
       const outFile = path.basename(inputFile, ".MP4") + "-with-overlay.mp4";
 
-      const command = `wsl ffmpeg -i "${inputFile}" -vf "drawtext=textfile=${overlayFile}" -c:a copy "${outFile}"`;
+      const command = `wsl ffmpeg -i "${inputFile}" -filter_complex_script "${overlayFile}" -c:a copy "${outFile}"`;
       console.log(`Executing command: ${command}`);
 
       exec(command, (error, stdout, stderr) => {
