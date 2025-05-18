@@ -1,3 +1,10 @@
+# Videos
+
+*.mp4
+*.mov   
+DejaVu_Sans
+
+
 # Logs
 logs
 *.log
