@@ -3,6 +3,8 @@
 *.mp4
 *.mov   
 DejaVu_Sans
+overlay.txt
+build/
 
 
 # Logs
